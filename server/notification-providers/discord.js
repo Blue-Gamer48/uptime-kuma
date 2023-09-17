@@ -6,9 +6,6 @@ class Discord extends NotificationProvider {
 
     name = "discord";
 
-    /**
-     * @inheritdoc
-     */
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         let okMsg = "Sent Successfully.";
 
@@ -33,7 +30,6 @@ class Discord extends NotificationProvider {
                     break;
                 case "port":
                 case "dns":
-                case "gamedig":
                 case "steam":
                     address = monitorJSON["hostname"];
                     if (monitorJSON["port"]) {
@@ -50,24 +46,24 @@ class Discord extends NotificationProvider {
                 let discorddowndata = {
                     username: discordDisplayName,
                     embeds: [{
-                        title: "❌ Your service " + monitorJSON["name"] + " went down. ❌",
+                        title: "❌ Der Dienst " + monitorJSON["name"] + " ist Offline. ❌",
                         color: 16711680,
                         timestamp: heartbeatJSON["time"],
                         fields: [
                             {
-                                name: "Service Name",
+                                name: "Dienstname",
                                 value: monitorJSON["name"],
                             },
                             {
-                                name: monitorJSON["type"] === "push" ? "Service Type" : "Service URL",
+                                name: monitorJSON["type"] === "push" ? "Service Type" : "Dienstadresse",
                                 value: monitorJSON["type"] === "push" ? "Heartbeat" : address,
                             },
                             {
-                                name: `Time (${heartbeatJSON["timezone"]})`,
-                                value: heartbeatJSON["localDateTime"],
+                                name: "Datum und Uhrzeit (UTC)",
+                                value: heartbeatJSON["time"],
                             },
                             {
-                                name: "Error",
+                                name: "Fehler",
                                 value: heartbeatJSON["msg"] == null ? "N/A" : heartbeatJSON["msg"],
                             },
                         ],
@@ -85,21 +81,21 @@ class Discord extends NotificationProvider {
                 let discordupdata = {
                     username: discordDisplayName,
                     embeds: [{
-                        title: "✅ Your service " + monitorJSON["name"] + " is up! ✅",
+                        title: "✅ Der Dienst " + monitorJSON["name"] + " ist Online! ✅",
                         color: 65280,
                         timestamp: heartbeatJSON["time"],
                         fields: [
                             {
-                                name: "Service Name",
+                                name: "Dienstname",
                                 value: monitorJSON["name"],
                             },
                             {
-                                name: monitorJSON["type"] === "push" ? "Service Type" : "Service URL",
+                                name: monitorJSON["type"] === "push" ? "Service Type" : "Dienstadresse",
                                 value: monitorJSON["type"] === "push" ? "Heartbeat" : address,
                             },
                             {
-                                name: `Time (${heartbeatJSON["timezone"]})`,
-                                value: heartbeatJSON["localDateTime"],
+                                name: "Datum und Uhrzeit (UTC)",
+                                value: heartbeatJSON["time"],
                             },
                             {
                                 name: "Ping",
