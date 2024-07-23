@@ -3,20 +3,14 @@ const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
 
 class Discord extends NotificationProvider {
+
     name = "discord";
 
-    /**
-     * @inheritdoc
-     */
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
-        const okMsg = "Sent Successfully.";
+        let okMsg = "Sent Successfully.";
 
         try {
             const discordDisplayName = notification.discordUsername || "Uptime Kuma";
-            const webhookUrl = new URL(notification.discordWebhookUrl);
-            if (notification.discordChannelType === "postToThread") {
-                webhookUrl.searchParams.append("thread_id", notification.threadId);
-            }
 
             // If heartbeatJSON is null, assume we're testing.
             if (heartbeatJSON == null) {
@@ -24,13 +18,27 @@ class Discord extends NotificationProvider {
                     username: discordDisplayName,
                     content: msg,
                 };
-
-                if (notification.discordChannelType === "createNewForumPost") {
-                    discordtestdata.thread_name = notification.postName;
-                }
-
-                await axios.post(webhookUrl.toString(), discordtestdata);
+                await axios.post(notification.discordWebhookUrl, discordtestdata);
                 return okMsg;
+            }
+
+            let address;
+
+            switch (monitorJSON["type"]) {
+                case "ping":
+                    address = monitorJSON["hostname"];
+                    break;
+                case "port":
+                case "dns":
+                case "steam":
+                    address = monitorJSON["hostname"];
+                    if (monitorJSON["port"]) {
+                        address += ":" + monitorJSON["port"];
+                    }
+                    break;
+                default:
+                    address = monitorJSON["url"];
+                    break;
             }
 
             // If heartbeatJSON is not null, we go into the normal alerting loop.
@@ -38,58 +46,56 @@ class Discord extends NotificationProvider {
                 let discorddowndata = {
                     username: discordDisplayName,
                     embeds: [{
-                        title: "❌ Your service " + monitorJSON["name"] + " went down. ❌",
+                        title: "❌ Der Dienst " + monitorJSON["name"] + " ist Offline. ❌",
                         color: 16711680,
                         timestamp: heartbeatJSON["time"],
                         fields: [
                             {
-                                name: "Service Name",
+                                name: "Dienstname",
                                 value: monitorJSON["name"],
                             },
                             {
-                                name: monitorJSON["type"] === "push" ? "Service Type" : "Service URL",
-                                value: this.extractAdress(monitorJSON),
+                                name: monitorJSON["type"] === "push" ? "Service Type" : "Dienstadresse",
+                                value: monitorJSON["type"] === "push" ? "Heartbeat" : address,
                             },
                             {
-                                name: `Time (${heartbeatJSON["timezone"]})`,
-                                value: heartbeatJSON["localDateTime"],
+                                name: "Datum und Uhrzeit (UTC)",
+                                value: heartbeatJSON["time"],
                             },
                             {
-                                name: "Error",
+                                name: "Fehler",
                                 value: heartbeatJSON["msg"] == null ? "N/A" : heartbeatJSON["msg"],
                             },
                         ],
                     }],
                 };
-                if (notification.discordChannelType === "createNewForumPost") {
-                    discorddowndata.thread_name = notification.postName;
-                }
+
                 if (notification.discordPrefixMessage) {
                     discorddowndata.content = notification.discordPrefixMessage;
                 }
 
-                await axios.post(webhookUrl.toString(), discorddowndata);
+                await axios.post(notification.discordWebhookUrl, discorddowndata);
                 return okMsg;
 
             } else if (heartbeatJSON["status"] === UP) {
                 let discordupdata = {
                     username: discordDisplayName,
                     embeds: [{
-                        title: "✅ Your service " + monitorJSON["name"] + " is up! ✅",
+                        title: "✅ Der Dienst " + monitorJSON["name"] + " ist Online! ✅",
                         color: 65280,
                         timestamp: heartbeatJSON["time"],
                         fields: [
                             {
-                                name: "Service Name",
+                                name: "Dienstname",
                                 value: monitorJSON["name"],
                             },
                             {
-                                name: monitorJSON["type"] === "push" ? "Service Type" : "Service URL",
-                                value: this.extractAdress(monitorJSON),
+                                name: monitorJSON["type"] === "push" ? "Service Type" : "Dienstadresse",
+                                value: monitorJSON["type"] === "push" ? "Heartbeat" : address,
                             },
                             {
-                                name: `Time (${heartbeatJSON["timezone"]})`,
-                                value: heartbeatJSON["localDateTime"],
+                                name: "Datum und Uhrzeit (UTC)",
+                                value: heartbeatJSON["time"],
                             },
                             {
                                 name: "Ping",
@@ -99,15 +105,11 @@ class Discord extends NotificationProvider {
                     }],
                 };
 
-                if (notification.discordChannelType === "createNewForumPost") {
-                    discordupdata.thread_name = notification.postName;
-                }
-
                 if (notification.discordPrefixMessage) {
                     discordupdata.content = notification.discordPrefixMessage;
                 }
 
-                await axios.post(webhookUrl.toString(), discordupdata);
+                await axios.post(notification.discordWebhookUrl, discordupdata);
                 return okMsg;
             }
         } catch (error) {
